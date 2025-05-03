@@ -1,0 +1,134 @@
+import turtle
+import time
+import math
+from datetime import datetime
+
+
+class Digit:
+    def __init__(self, number, angle, radius):
+        self.number = number
+        self.angle = angle
+        self.radius = radius
+
+    def draw(self, turtle_obj):
+        x = self.radius * math.sin(math.radians(self.angle))
+        y = self.radius * math.cos(math.radians(self.angle))
+        turtle_obj.penup()
+        turtle_obj.goto(x, y - 10)
+        turtle_obj.write(str(self.number), align="center", font=("Arial", 14, "normal"))
+
+
+class Dial:
+    def __init__(self, radius=200):
+        self.radius = radius
+        self.digits = [Digit(i if i != 0 else 12, i * 30, self.radius - 30) for i in range(12)]
+
+    def draw(self, turtle_obj):
+        turtle_obj.penup()
+        turtle_obj.goto(0, -self.radius)
+        turtle_obj.pendown()
+        turtle_obj.circle(self.radius)
+        for digit in self.digits:
+            digit.draw(turtle_obj)
+
+
+class Hand:
+    def __init__(self, length, thickness, color):
+        self.length = length
+        self.thickness = thickness
+        self.color = color
+
+    def draw(self, turtle_obj, angle):
+        turtle_obj.penup()
+        turtle_obj.goto(0, 0)
+        turtle_obj.setheading(90)
+        turtle_obj.right(angle)
+        turtle_obj.pendown()
+        turtle_obj.pensize(self.thickness)
+        turtle_obj.pencolor(self.color)
+        turtle_obj.forward(self.length)
+
+# Основна функція
+def main():
+    screen = turtle.Screen()
+    screen.title("Аналоговий + Цифровий годинник")
+    screen.tracer(0)
+
+    # Змінні для теми і формату
+    is_24_hour = True
+    bg_color = "white"
+    digit_color = "black"
+
+    dial_turtle = turtle.Turtle()
+    dial_turtle.hideturtle()
+
+    hand_turtle = turtle.Turtle()
+    hand_turtle.hideturtle()
+    hand_turtle.speed(0)
+
+    digital_turtle = turtle.Turtle()
+    digital_turtle.hideturtle()
+
+    dial = Dial()
+    dial.draw(dial_turtle)
+
+    def toggle_format():
+        nonlocal is_24_hour
+        is_24_hour = not is_24_hour
+
+    screen.listen()
+    screen.onkey(toggle_format, "t")
+
+    def update():
+        nonlocal bg_color, digit_color
+
+        now = datetime.now()
+        hour = now.hour
+        minute = now.minute
+        sec = now.second
+
+        # Темна тема з 19:00 до 6:00
+        if hour >= 19 or hour < 6:
+            bg_color = "black"
+            digit_color = "white"
+        else:
+            bg_color = "white"
+            digit_color = "black"
+
+        screen.bgcolor(bg_color)
+        dial_turtle.clear()
+        dial_turtle.pencolor(digit_color)
+        dial.draw(dial_turtle)
+
+        hand_turtle.clear()
+        second_angle = sec * 6
+        minute_angle = minute * 6 + sec * 0.1
+        hour_angle = (hour % 12) * 30 + minute * 0.5
+
+        Hand(90, 1, "red").draw(hand_turtle, second_angle)
+        Hand(70, 3, "blue").draw(hand_turtle, minute_angle)
+        Hand(50, 5, digit_color).draw(hand_turtle, hour_angle)
+
+
+        digital_turtle.clear()
+        digital_turtle.penup()
+        digital_turtle.goto(0, -250)
+        digital_turtle.color(digit_color)
+
+        if is_24_hour:
+            time_str = f"{hour:02}:{minute:02}:{sec:02}"
+        else:
+            h12 = hour % 12 or 12
+            suffix = "AM" if hour < 12 else "PM"
+            time_str = f"{h12:02}:{minute:02}:{sec:02} {suffix}"
+
+        digital_turtle.write(time_str, align="center", font=("Arial", 20, "bold"))
+
+        screen.update()
+        screen.ontimer(update, 1000)
+
+    update()
+    turtle.done()
+
+if __name__ == "__main__":
+    main()
